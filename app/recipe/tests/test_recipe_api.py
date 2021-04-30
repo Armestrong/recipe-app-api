@@ -106,3 +106,62 @@ class PrivateRecipeTest(TestCase):
 
         self.assertEqual(res.status_code, status.HTTP_200_OK)
         self.assertEqual(res.data, serializer.data)
+
+    def test_create_basic_recipe(self):
+        """Test create a basic recipe"""
+        payload = {
+            'title': 'Bacon and Eggs',
+            'time_minutes': 5,
+            'price': 5.00
+        }
+
+        res = self.client.post(RECIPE_URL, payload)
+
+        self.assertEqual(res.status_code, status.HTTP_201_CREATED)
+
+        recipe = Recipe.objects.get(id=res.data['id'])
+        for key in payload.keys():
+            self.assertEqual(payload[key], getattr(recipe, key))
+
+    def test_create_recipe_with_tags(self):
+        """Test creating recipe with tags"""
+        tag1 = sample_tag(user=self.user, name='Vegan')
+        tag2 = sample_tag(user=self.user, name='Dessert')
+        payload = {
+            'title': 'Bacon-salt',
+            'tags': [tag1.id, tag2.id],
+            'time_minutes': 5,
+            'price': 5.00
+        }
+
+        res = self.client.post(RECIPE_URL, payload)
+
+        self.assertEqual(res.status_code, status.HTTP_201_CREATED)
+
+        recipe = Recipe.objects.get(id=res.data['id'])
+        tags = recipe.tags.all()
+        self.assertEqual(tags.count(), 2)
+        self.assertIn(tag1, tags)
+        self.assertIn(tag2, tags)
+
+    def test_create_recipe_with_ingredients(self):
+        """Test creating recipes with ingredients"""
+        igt1 = sample_ingredient(user=self.user, name='Eggs')
+        igt2 = sample_ingredient(user=self.user, name='Bacon')
+        payload = {
+            'title': 'Bacon and Eggs',
+            'ingredients': [igt1.id, igt2.id],
+            'time_minutes': 5,
+            'price': 5.00,
+        }
+
+        res = self.client.post(RECIPE_URL, payload)
+
+        self.assertEqual(res.status_code, status.HTTP_201_CREATED)
+
+        recipe = Recipe.objects.get(id=res.data['id'])
+        ingredients = recipe.ingredients.all()
+
+        self.assertEqual(ingredients.count(), 2)
+        self.assertIn(igt1, ingredients)
+        self.assertIn(igt2, ingredients)
